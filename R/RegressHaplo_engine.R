@@ -127,7 +127,12 @@ optimize.engine <- function(y, P, rho, pi, mu, kk,
 
   # OUTER LOOP, RAISES PENALTY AND RECALCULATES LAGRANGE MULTIPLIES
   #cat("RUNNING AUGMENTED LAGRANGIAN WITH ACCURACY TARGET", glaveps, "\n")
-  while(total_error > glaveps & outer_loop_counter < 500) {
+  stop_outer <- 500 #500
+  stop_inner <- 1000 #1000
+  pi_len <- length(pi)
+  pi_record <- array(NA,dim=c(pi_len,stop_inner,stop_outer))
+  print(dim(pi_record))
+  while(total_error > glaveps & outer_loop_counter < stop_outer) {
     outer_loop_counter <- outer_loop_counter + 1
     t <- 1
     L <- 1.25*max_Hessian_eigenvalue.engine(QQ)
@@ -145,7 +150,9 @@ optimize.engine <- function(y, P, rho, pi, mu, kk,
       inner_loop_counter <- inner_loop_counter + 1
 
       pi_new <- pi - grad/L
+      # RIGHT HERE!!
       pi_new <- pi_new*(pi_new > 0)
+      pi_record[,inner_loop_counter,outer_loop_counter] <- pi_new
 
       nt <- (1 + sqrt(1 + 4*t^2))/2
 
@@ -157,7 +164,7 @@ optimize.engine <- function(y, P, rho, pi, mu, kk,
       grad <- grad_AL.engine(QQ, Py_more, pi)
       grad_error <- gradient_norm.engine(pi, grad, glaveps)
 
-      if (grad_error < .1*total_error | inner_loop_counter > 1000)
+      if (grad_error < .1*total_error | inner_loop_counter >= stop_inner)
         break
 
     }
@@ -173,8 +180,8 @@ optimize.engine <- function(y, P, rho, pi, mu, kk,
     total_error <- abs(constraint_value.engine(pi)) +
                     gradient_norm.engine(pi, grad, glaveps)
   }
-
-  return (pi)
+  pi_record <- pi_record[,,1:outer_loop_counter]
+  return (list(pi=pi,pi_record=pi_record))
 }
 
 

@@ -1,4 +1,3 @@
-
 #' Generate consistent haplotypes for a read table and, if desired, apply
 #' RegressHaplo optimization.
 #'
@@ -333,17 +332,21 @@ penalized_regression.RegressHaplo <- function(y, P, pi=NULL, rho, kk=2,
     pi <- pi/sum(pi)
   }
 
-  pi_full <- optimize.engine(y=y, P=P, rho=rho, pi=pi, mu=0, kk=kk,
+  full_optimize <- optimize.engine(y=y, P=P, rho=rho, pi=pi, mu=0, kk=kk,
                              verbose=verbose)
-
+  pi_full <- full_optimize$pi
+  
   # keep only significant frequencies
   ind <- pi_full > 10^-3
   pi_short0 <- pi_full[ind]
   P_short <- P[,ind,drop=F]
 
-  if (length(pi_short0) > 1)
-    pi_short <- optimize.engine(y=y, P=P_short, rho=0, pi=pi_short0,
+  if (length(pi_short0) > 1) {
+    short_optimize <- optimize.engine(y=y, P=P_short, rho=0, pi=pi_short0,
                                 mu=0, kk=kk, verbose=verbose)
+    pi_short <- short_optimize$pi
+  }
+    
   else
     pi_short <- pi_short0
 
@@ -354,7 +357,7 @@ penalized_regression.RegressHaplo <- function(y, P, pi=NULL, rho, kk=2,
   pi_full[!ind] <- 0
   pi_full[ind] <- pi_short
 
-  return (list(pi=pi_full, fit=fit))
+  return (list(pi=pi_full, fit=fit, pi_record=full_optimize$pi_record))
 }
 
 
